@@ -1,0 +1,478 @@
+{
+  "name": "AI Lead Qualifier",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ai-lead-qualifier",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        64
+      ],
+      "id": "6eeab69e-def4-4cd7-b9da-6bd8a3877f45",
+      "name": "Lead Intake",
+      "webhookId": "YOUR_WEBHOOK_ID"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "95d0d7ca-691b-4141-9cd4-444fccc243db",
+              "name": "body.name",
+              "value": "={{ $json.body.name }}",
+              "type": "string"
+            },
+            {
+              "id": "2133200d-dd4e-49de-83d4-8731505af8d3",
+              "name": "body.email",
+              "value": "={{ $json.body.email }}",
+              "type": "string"
+            },
+            {
+              "id": "87b2e34f-4f9a-4a52-b56b-0ed021eabb36",
+              "name": "body.company",
+              "value": "={{ $json.body.company }}",
+              "type": "string"
+            },
+            {
+              "id": "db65f3a8-76cc-4cf3-b64b-25b516a850cc",
+              "name": "body.message",
+              "value": "={{ $json.body.message }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        224,
+        64
+      ],
+      "id": "08adfa36-b876-4c0c-9919-d0aa971bf41e",
+      "name": "Prepare Lead"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Analyze this customer lead:\n\nName: {{ $json.body.name }}\nEmail: {{ $json.body.email }}\nCompany: {{ $json.body.company }}\nMessage: {{ $json.body.message }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are a lead qualification assistant for a business.\n\nAnalyze each incoming customer lead and determine:\n\n1. What the customer needs.\n2. The category of the request.\n3. The priority of the lead: Low, Medium, or High.\n4. A short summary of the request.\n\nDo not invent information that is not present in the lead.\n\nReturn the result in a clear and structured format."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        448,
+        64
+      ],
+      "id": "a6e76b2f-e069-4fe3-8497-b17df190409a",
+      "name": "Qualify Lead"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-5.6-luna",
+          "mode": "list",
+          "cachedResultName": "gpt-5.6-luna"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        464,
+        288
+      ],
+      "id": "555e5746-29fa-4d7a-a7d5-023645644f8a",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "name": "YOUR_OPENAIAPI_CREDENTIAL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"name\": \"Alex\",\n  \"company\": \"Test Company\",\n  \"email\": \"alex@example.com\",\n  \"need\": \"Automation for handling customer leads\",\n  \"category\": \"Lead management automation\",\n  \"priority\": \"Medium\",\n  \"summary\": \"Customer wants to automate lead management.\"\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        592,
+        288
+      ],
+      "id": "6d0b7b8a-8f8a-4b53-96c2-25cc8df6fbbd",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "value": "YOUR_DATA_TABLE_ID",
+          "mode": "list",
+          "cachedResultName": "leads",
+          "cachedResultUrl": "/projects/YOUR_PROJECT_ID/datatables/YOUR_DATA_TABLE_ID"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "name": "={{ $json.output.name }}",
+            "company": "={{ $json.output.company }}",
+            "email": "={{ $json.output.email }}",
+            "need": "={{ $json.output.need }}",
+            "category": "={{ $json.output.category }}",
+            "priority": "={{ $json.output.priority }}",
+            "summary": "={{ $json.output.summary }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "name",
+              "displayName": "name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "company",
+              "displayName": "company",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "email",
+              "displayName": "email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "need",
+              "displayName": "need",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "category",
+              "displayName": "category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "priority",
+              "displayName": "priority",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "summary",
+              "displayName": "summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        800,
+        64
+      ],
+      "id": "10cb148c-f4de-43eb-a814-e73f517a5340",
+      "name": "Save Lead"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "199c67ae-8f4c-413f-a24f-78f47d379ccd",
+              "leftValue": "={{ $json.priority }}",
+              "rightValue": "High",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1024,
+        64
+      ],
+      "id": "ada45e49-182a-4cc6-9eaf-87af3fa8337b",
+      "name": "Check High Priority"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "6ae363d8-c8f6-4de5-94dd-76d051bd3466",
+              "leftValue": "={{ $json.priority }}",
+              "rightValue": "Medium",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1248,
+        160
+      ],
+      "id": "8575f8d0-a674-4176-91f2-6d41d4e99f08",
+      "name": "Check Medium Priority"
+    },
+    {
+      "parameters": {
+        "chatId": "YOUR_TELEGRAM_CHAT_ID",
+        "text": "=🔥 HIGH PRIORITY LEAD\n\n👤 Name: {{ $json.name }}\n🏢 Company: {{ $json.company }}\n📧 Email: {{ $json.email }}\n\n🎯 Need: {{ $json.need }}\n📂 Category: {{ $json.category }}\n\n📝 Summary:\n{{ $json.summary }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1248,
+        -32
+      ],
+      "id": "406c9102-9aae-4937-9482-1e60b81cc0f9",
+      "name": "Notify Manager High",
+      "webhookId": "YOUR_WEBHOOK_ID",
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "credentials": {
+        "telegramApi": {
+          "name": "YOUR_TELEGRAMAPI_CREDENTIAL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "YOUR_TELEGRAM_CHAT_ID",
+        "text": "=🟡 MEDIUM PRIORITY LEAD\n\n👤 Name: {{ $json.name }}\n🏢 Company: {{ $json.company }}\n📧 Email: {{ $json.email }}\n\n🎯 Need: {{ $json.need }}\n📂 Category: {{ $json.category }}\n\n📝 Summary:\n{{ $json.summary }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1520,
+        128
+      ],
+      "id": "4ecda33a-5ed7-4421-b5ae-8e01bda19a33",
+      "name": "Notify Manager Medium",
+      "webhookId": "YOUR_WEBHOOK_ID",
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "credentials": {
+        "telegramApi": {
+          "name": "YOUR_TELEGRAMAPI_CREDENTIAL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "YOUR_TELEGRAM_CHAT_ID",
+        "text": "=🟢 LOW PRIORITY LEAD\n\n👤 Name: {{ $json.name }}\n🏢 Company: {{ $json.company }}\n📧 Email: {{ $json.email }}\n\n🎯 Need: {{ $json.need }}\n📂 Category: {{ $json.category }}\n\n📝 Summary:\n{{ $json.summary }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1520,
+        336
+      ],
+      "id": "ded88481-88e8-408c-b9f6-24274ef5d971",
+      "name": "Notify Manager Low",
+      "webhookId": "YOUR_WEBHOOK_ID",
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "credentials": {
+        "telegramApi": {
+          "name": "YOUR_TELEGRAMAPI_CREDENTIAL"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Lead Intake": {
+      "main": [
+        [
+          {
+            "node": "Prepare Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Lead": {
+      "main": [
+        [
+          {
+            "node": "Qualify Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Qualify Lead",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Qualify Lead",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Qualify Lead": {
+      "main": [
+        [
+          {
+            "node": "Save Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Lead": {
+      "main": [
+        [
+          {
+            "node": "Check High Priority",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check High Priority": {
+      "main": [
+        [
+          {
+            "node": "Notify Manager High",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Check Medium Priority",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Medium Priority": {
+      "main": [
+        [
+          {
+            "node": "Notify Manager Medium",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Notify Manager Low",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "errorWorkflow": "tP7WliCyLcziJtRM",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "nodeGroups": [],
+  "tags": []
+}
