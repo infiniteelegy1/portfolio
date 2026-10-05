@@ -1,0 +1,370 @@
+{
+  "name": "Pocket Business Analyst",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -192,
+        544
+      ],
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-5.6-sol",
+          "mode": "list",
+          "cachedResultName": "gpt-5.6-sol"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        1104,
+        464
+      ],
+      "name": "OpenAI Chat Model"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-5.6-sol",
+          "mode": "list",
+          "cachedResultName": "gpt-5.6-sol"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        1104,
+        976
+      ],
+      "name": "OpenAI Chat Model1"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 1
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -128,
+        352
+      ],
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "Pocket Business Analyst - Sales Data"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Лист1"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        128,
+        544
+      ],
+      "name": "📥Get Sales Data"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\nlet totalOrders = 0;\nlet totalRevenue = 0;\nlet totalCost = 0;\n\nfor (const item of items) {\n  const values = Object.values(item.json);\n\n  totalOrders += Number(values[4]);\n  totalRevenue += Number(values[5]);\n  totalCost += Number(values[6]);\n}\n\nconst totalProfit = totalRevenue - totalCost;\nconst averageOrderValue = totalRevenue / totalOrders;\n\nreturn [\n  {\n    json: {\n      totalOrders,\n      totalRevenue,\n      totalCost,\n      totalProfit,\n      averageOrderValue\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        352,
+        544
+      ],
+      "name": "📊Calculate KPIs",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\nlet previous = {\n  orders: 0,\n  revenue: 0,\n  cost: 0\n};\n\nlet current = {\n  orders: 0,\n  revenue: 0,\n  cost: 0\n};\n\nfor (const item of items) {\n  const values = Object.values(item.json);\n\n  const date = values[1];\n  const orders = Number(values[4]);\n  const revenue = Number(values[5]);\n  const cost = Number(values[6]);\n\n  if (date <= \"2026-10-04\") {\n    previous.orders += orders;\n    previous.revenue += revenue;\n    previous.cost += cost;\n  } else {\n    current.orders += orders;\n    current.revenue += revenue;\n    current.cost += cost;\n  }\n}\n\nprevious.profit = previous.revenue - previous.cost;\ncurrent.profit = current.revenue - current.cost;\n\nconst change = (currentValue, previousValue) => {\n  if (previousValue === 0) return 0;\n  return ((currentValue - previousValue) / previousValue) * 100;\n};\n\nreturn [\n  {\n    json: {\n      previousPeriod: previous,\n      currentPeriod: current,\n      changes: {\n        ordersPercent: change(current.orders, previous.orders),\n        revenuePercent: change(current.revenue, previous.revenue),\n        profitPercent: change(current.profit, previous.profit)\n      }\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        576,
+        544
+      ],
+      "name": "📈Compare Periods"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Analyze this sales performance data:\n\n{{ JSON.stringify($json, null, 2) }}",
+        "options": {
+          "systemMessage": "You are a business analyst.\n\nAnalyze the provided sales performance data.\n\nYour job is to:\n1. Compare the previous period with the current period.\n2. Identify the most important changes in Orders, Revenue, Cost, and Profit.\n3. Calculate and explain the percentage changes when they are provided.\n4. Identify positive and negative trends.\n5. Highlight anything that may require management attention.\n6. Do not invent information that is not present in the data.\n\nWrite the analysis clearly and concisely for a business owner.\n\nStructure the report as:\n\n1. Executive Summary\n2. Key Changes\n3. Positive Trends\n4. Risks / Things to Watch\n5. Recommended Actions\n\nUse actual numbers from the provided data."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1024,
+        240
+      ],
+      "name": "🤖AI Business Analyst"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\n\nconst previous = data.previousPeriod;\nconst current = data.currentPeriod;\nconst changes = data.changes;\n\nconst anomalies = [];\n\nif (changes.ordersPercent < -20) {\n  anomalies.push({\n    metric: \"Orders\",\n    severity: \"High\",\n    message: \"Orders decreased significantly.\"\n  });\n}\n\nif (changes.revenuePercent < -20) {\n  anomalies.push({\n    metric: \"Revenue\",\n    severity: \"High\",\n    message: \"Revenue decreased significantly.\"\n  });\n}\n\nif (changes.profitPercent < -20) {\n  anomalies.push({\n    metric: \"Profit\",\n    severity: \"High\",\n    message: \"Profit decreased significantly.\"\n  });\n}\n\nif (changes.profitPercent < changes.revenuePercent - 10) {\n  anomalies.push({\n    metric: \"Profit\",\n    severity: \"Medium\",\n    message: \"Profit is growing significantly slower than revenue.\"\n  });\n}\n\nif (current.cost > previous.cost && changes.revenuePercent < changes.profitPercent) {\n  anomalies.push({\n    metric: \"Cost\",\n    severity: \"Medium\",\n    message: \"Costs increased while profitability improved. Cost efficiency should be monitored.\"\n  });\n}\n\nreturn [\n  {\n    json: {\n      hasAnomalies: anomalies.length > 0,\n      anomalyCount: anomalies.length,\n      anomalies\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        800,
+        752
+      ],
+      "name": "⚠️Detect Anomalies"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Analyze these detected anomalies:\n\n{{ JSON.stringify($json, null, 2) }}",
+        "options": {
+          "systemMessage": "You are an anomaly analysis assistant for a business.\n\nAnalyze the detected anomalies provided in the input.\n\nYour job is to:\n1. Identify which metrics require attention.\n2. Explain why each anomaly matters.\n3. Assess the severity: Low, Medium, or High.\n4. Give a short practical recommendation for what the business owner should check.\n5. Do not invent information that is not present in the data.\n\nIf no anomalies are detected, clearly state that no significant anomalies were found.\n\nKeep the analysis concise and practical."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1024,
+        752
+      ],
+      "name": "🧠AI Anomaly Analyst"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1376,
+        544
+      ],
+      "name": "🔀Merge AI Reports"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\nconst businessReport = items[0]?.json?.output || \"\";\nconst anomalyReport = items[1]?.json?.output || \"\";\n\nconst finalReport = `📊 BUSINESS REPORT\n\n${businessReport}\n\n⚠️ ANOMALY ANALYSIS\n\n${anomalyReport}\n`;\n\nreturn [\n  {\n    json: {\n      finalReport\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1600,
+        544
+      ],
+      "name": "📋Build Final Report"
+    },
+    {
+      "parameters": {
+        "jsCode": "const text = $json.finalReport || \"\";\n\nconst chunkSize = 3500;\nconst chunks = [];\n\nfor (let i = 0; i < text.length; i += chunkSize) {\n  chunks.push(text.slice(i, i + chunkSize));\n}\n\nreturn chunks.map((chunk, index) => ({\n  json: {\n    message: chunk,\n    part: index + 1,\n    totalParts: chunks.length\n  }\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1824,
+        544
+      ],
+      "name": "✂️Split Report for Telegram"
+    },
+    {
+      "parameters": {
+        "chatId": "YOUR_TELEGRAM_CHAT_ID",
+        "text": "={{ $json.message }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2048,
+        544
+      ],
+      "name": "📱Send Business Report",
+      "alwaysOutputData": true,
+      "retryOnFail": true
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "📥Get Sales Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "🤖AI Business Analyst",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "🧠AI Anomaly Analyst",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        []
+      ]
+    },
+    "📥Get Sales Data": {
+      "main": [
+        [
+          {
+            "node": "📊Calculate KPIs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📊Calculate KPIs": {
+      "main": [
+        [
+          {
+            "node": "📈Compare Periods",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📈Compare Periods": {
+      "main": [
+        [
+          {
+            "node": "⚠️Detect Anomalies",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "🤖AI Business Analyst",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🤖AI Business Analyst": {
+      "main": [
+        [
+          {
+            "node": "🔀Merge AI Reports",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "⚠️Detect Anomalies": {
+      "main": [
+        [
+          {
+            "node": "🧠AI Anomaly Analyst",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🧠AI Anomaly Analyst": {
+      "main": [
+        [
+          {
+            "node": "🔀Merge AI Reports",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "🔀Merge AI Reports": {
+      "main": [
+        [
+          {
+            "node": "📋Build Final Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📋Build Final Report": {
+      "main": [
+        [
+          {
+            "node": "✂️Split Report for Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "✂️Split Report for Telegram": {
+      "main": [
+        [
+          {
+            "node": "📱Send Business Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "errorWorkflow": "QgTPDsuUFtYw1bGT",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "nodeGroups": []
+}
