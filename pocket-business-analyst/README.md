@@ -119,6 +119,24 @@ The workflow consists of several independent stages:
 
 This modular architecture makes the system easier to extend and adapt to different business processes.
 
+## Screenshots
+
+### Workflow Architecture
+
+![Workflow Architecture](screenshots/workflow.png)
+
+### AI Business Analysis
+
+![AI Business Analysis](screenshots/ai-analysis.png)
+
+### Anomaly Analysis
+
+![Anomaly Analysis](screenshots/anomaly-analysis.png)
+
+### Automated Telegram Report
+
+![Telegram Report](screenshots/telegram-report.png)
+
 ## Project Status
 
 Working prototype / portfolio project.
