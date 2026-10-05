@@ -131,7 +131,7 @@ This modular architecture makes the system easier to extend and adapt to differe
 
 ### Anomaly Analysis
 
-![Anomaly Analysis](screenshots/anomaly-analysis.png)
+![Anomaly Analysis](screenshots/ai-anomaly-analyst.png)
 
 ### Automated Telegram Report
 
